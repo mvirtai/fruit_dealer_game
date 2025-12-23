@@ -11,3 +11,6 @@ wheels/
 
 # Plans and instructions
 .plans_and_instructions/
+
+# Coverage reports
+.coverage

@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+vars:
+  GREETING: Hello, world!
+
+tasks:
+  default:
+    desc: Print a greeting message
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  test:
+    desc: Run tests
+    cmds:
+      - uv run pytest --cov=systems.pricing --cov-report=term-missing
+
+  coverage:
+    desc: Generate coverage report
+    cmds:
+      - uv run coverage html

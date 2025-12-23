@@ -7,14 +7,15 @@ from dataclasses import field
 # type aliases
 Money = int # cents
 Coordinates = Tuple[int, int]
+Emoji = str
 
 
 @dataclass
 class Fruit:
     name: str 
     base_price: Money
-    emoji: str
-    description: Optional[str] = None
+    emoji: Emoji
+    description: str = field(default="No description provided")
 
 
 @dataclass

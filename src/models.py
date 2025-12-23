@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Tuple, List
 from dataclasses import field
 
 
@@ -30,7 +30,7 @@ class Player:
     name: str
     money: Money
     inventory: Dict[str, int]
-    current_city: City
+    city: City
 
 
 @dataclass
@@ -41,8 +41,8 @@ class Market:
 
 @dataclass
 class Game:
-    fruits: List[Fruit]
-    cities: List[City]
-    players: List[Player]
-    markets: List[Market]
-    current_day: int
+    fruits: List[Fruit]    # Multiple fruits to trade
+    cities: List[City]     # Multiple cities to visit
+    player: Player         # Single player
+    markets: List[Market]  # One market per city
+    day: int

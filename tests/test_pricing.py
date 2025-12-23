@@ -98,38 +98,89 @@ def pori(make_city):
 # =============================================================================
 
 def test_specialty_below_one_reduces_price(apple, pori, make_game):
-    # ARRANGE
     game = make_game(fruits=[apple], cities=[pori])
-    # ACT
     pricing = PricingSystem(game)
-    # ASSERT
     price = pricing.get_price("Apple", "Pori")
     logger.info(f"Price calculated: {price}")
-    # expected: 100 * 0.9 * (0.8 to 1.2) = 72 to 120
     assert 72 <= price <= 120
 
 
 def test_specialty_above_one_increases_price(banana, pori, make_game):
-    # ARRANGE
     game = make_game(fruits=[banana], cities=[pori])
-    # ACT
     pricing = PricingSystem(game)
-    # ASSERT
     price = pricing.get_price("Banana", "Pori")
     logger.info(f"Price calculated: {price}")
-    # expected: 100 * 1.1 * (0.8 to 1.2) = 88 to 132
     assert 88 <= price <= 132
 
 
 def test_non_specialty_fruit_uses_default_modifier(cherry, pori, make_game):
-    # ARRANGE
     game = make_game(fruits=[cherry], cities=[pori])
-    # ACT
     pricing = PricingSystem(game)
-    # ASSERT
     price = pricing.get_price("Cherry", "Pori")
     logger.info(f"Price calculated: {price}")
-    # expected: calculated price should be 120 * 1.0 * (0.8 to 1.2) = 96 to 144
     assert 96 <= price <= 144
 
 
+
+def test_get_price_return_zero_for_unknown_fruit(apple, pori, make_game):
+    game = make_game(fruits=[apple], cities=[pori])
+    pricing = PricingSystem(game)
+    price = pricing.get_price("Banana", "Pori")
+    logger.info(f"Price calculated: {price}")
+    assert price == 0
+
+
+def test_get_price_return_zero_for_unknown_city(apple, pori, make_game):
+    game = make_game(fruits=[apple], cities=[pori])
+    pricing = PricingSystem(game)
+    price = pricing.get_price("Apple", "Helsinki")
+    logger.info(f"Price calculated: {price}")
+    assert price == 0
+
+
+def test_regenerate_prices_updates_all_markets(apple, pori, make_game, mocker):
+    mock_uniform = mocker.patch('systems.pricing.random.uniform', side_effect=[0.9, 0.95])
+    game = make_game(fruits=[apple], cities=[pori])
+    pricing = PricingSystem(game)
+    price_before = pricing.get_price("Apple", "Pori")
+    pricing.regenerate_all_prices()
+    price_after = pricing.get_price("Apple", "Pori")
+    logger.info(f"Price before: {price_before}, Price after: {price_after}")
+    assert price_before != price_after
+
+
+def test_regenerate_updates_all_cities(apple, make_city, make_game):
+    tokyo = make_city("Tokyo", (0, 0), {"Apple": 0.8})
+    paris = make_city("Paris", (1, 1), {"Apple": 1.2})
+    game = make_game(fruits=[apple], cities=[tokyo, paris])
+    pricing = PricingSystem(game)
+    assert pricing.get_price("Apple", "Tokyo") > 0
+    assert pricing.get_price("Apple", "Paris") > 0
+    logger.info(f"Price in Tokyo: {pricing.get_price('Apple', 'Tokyo')}")
+    logger.info(f"Price in Paris: {pricing.get_price('Apple', 'Paris')}")
+    assert pricing.get_price("Apple", "Tokyo") != pricing.get_price("Apple", "Paris")
+
+
+def test_price_always_integer(make_fruit, make_city, make_game, mocker):
+    mocker.patch('systems.pricing.random.uniform', return_value=0.833333)
+    apple = make_fruit("Apple", 100, "🍎", "Fruit")
+    city = make_city("Test", (0, 0), {"Apple": 0.9})
+    game = make_game(fruits=[apple], cities=[city])
+    
+    pricing = PricingSystem(game)
+    price = pricing.get_price("Apple", "Test")
+    logger.info(f"Price calculated: {type(price)}, {price}")
+    assert isinstance(price, int), "Price should always be an integer, as required by the Money type alias."
+
+
+def test_empty_fruits_list_creates_empty_prices(make_city, make_game):
+    city = make_city("Empty", (0, 0), {})
+    game = make_game(fruits=[], cities=[city])
+    pricing = PricingSystem(game)
+    assert pricing.get_price("AnyFruit", "Empty") == 0, "Prices should be 0 for unknown fruits in empty game."
+
+def test_unknown_fruit_returns_zero(apple, make_city, make_game):
+    city = make_city("Known", (0, 0), {"Apple": 1.0})
+    game = make_game(fruits=[apple], cities=[city])
+    pricing = PricingSystem(game)
+    assert pricing.get_price("UnknownFruit", "Known") == 0, "Prices should be 0 for unknown fruits in a known city."

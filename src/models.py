@@ -1,18 +1,16 @@
-from dataclasses import dataclass
-from typing import Dict, Tuple, List
-from dataclasses import field
-
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple
 
 
 # type aliases
-Money = int # cents
+Money = int  # cents
 Coordinates = Tuple[int, int]
 Emoji = str
 
 
 @dataclass
 class Fruit:
-    name: str 
+    name: str
     base_price: Money
     emoji: Emoji
     description: str = field(default="No description provided")
@@ -22,7 +20,7 @@ class Fruit:
 class City:
     name: str
     position: Coordinates
-    specialties: Dict[str, float] # fruit -> price modifier (0.0 to 1.0)
+    specialties: Dict[str, float]  # fruit -> price modifier
 
 
 @dataclass
@@ -30,19 +28,18 @@ class Player:
     name: str
     money: Money
     inventory: Dict[str, int]
-    city: City
-
+    current_city: City  # was: city
 
 @dataclass
 class Market:
     city: City
-    prices: Dict[str, Money] # fruit -> price
+    prices: Dict[str, Money]  # fruit -> price
 
 
 @dataclass
 class Game:
-    fruits: List[Fruit]    # Multiple fruits to trade
-    cities: List[City]     # Multiple cities to visit
-    player: Player         # Single player
-    markets: List[Market]  # One market per city
-    day: int
+    fruits: List[Fruit]
+    cities: List[City]
+    players: List[Player]  # was: player
+    markets: List[Market]
+    current_day: int  # was: day

@@ -13,9 +13,24 @@ tasks:
     silent: true
 
   test:
-    desc: Run tests
+    desc: "Run tests with coverage (usage: MODULE=pricing task test, or task test for ALL)"
     cmds:
-      - uv run pytest --cov=systems.pricing --cov-report=term-missing
+      - |
+        MODULE="${MODULE:-ALL}"
+        if [ "$MODULE" = "ALL" ]; then
+          uv run pytest --cov=src --cov-report=term-missing
+        elif [ "$MODULE" = "pricing" ]; then
+          uv run pytest --cov=systems.pricing --cov-report=term-missing
+        elif [ "$MODULE" = "game_engine" ]; then
+          uv run pytest --cov=game_engine --cov-report=term-missing
+        elif [ "$MODULE" = "models" ]; then
+          uv run pytest --cov=models --cov-report=term-missing
+        else
+          echo "Unknown module: $MODULE"
+          echo "Available modules: ALL, pricing, game_engine, models"
+          echo "Usage: MODULE=pricing task test"
+          exit 1
+        fi
 
   coverage:
     desc: Generate coverage report

@@ -40,6 +40,6 @@ class Market:
 class Game:
     fruits: List[Fruit]
     cities: List[City]
-    players: List[Player]  # was: player
+    player: Player
     markets: List[Market]
     current_day: int  # was: day

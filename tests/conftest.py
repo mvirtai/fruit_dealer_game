@@ -1,13 +1,11 @@
+from pathlib import Path
 from typing import Dict, List
 from typing import Callable
 import pytest
 
+from game_engine import GameEngine  
 from models import Fruit, City, Market, Game, Money, Coordinates, Emoji, Player
-
-
-# =============================================================================
-# FACTORIES #
-# =============================================================================
+from main import GAME_FILE
 
 @pytest.fixture
 def make_fruit() -> Callable[[str, Money, str], Fruit]:
@@ -98,3 +96,19 @@ def pori() -> City:
 @pytest.fixture
 def helsinki() -> City:
     return City(name="Helsinki", position=(0, 0), specialties={"Apple": 1.2})
+
+
+@pytest.fixture
+def player_name() -> str:
+    return "Test Player"
+
+@pytest.fixture
+def game_engine(make_game, apple, banana, pori) -> GameEngine:
+    game = make_game(
+        fruits=[apple, banana],
+        cities=[pori],
+        player_money=1_000,
+        player_city=pori,
+        player_inventory={},
+    )
+    return GameEngine(game)

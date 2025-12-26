@@ -25,7 +25,7 @@ def cherry() -> Fruit:
 
 @pytest.fixture
 def helsinki() -> City:
-    return City(name="Helsinki", position=(0, 0), specialties={"Apple": 1.2})
+    return City(name="Helsinki", position=(0, 0), specialties={"Apple": 1.2, "Banana": 1.2})
 
 
 def test_specialty_below_one_reduces_price(apple, pori, make_game):
@@ -35,19 +35,20 @@ def test_specialty_below_one_reduces_price(apple, pori, make_game):
     logger.info(f"Price calculated: {price}")
     assert 64 <= price <= 96  # 100 * 0.8 * 0.8 = 64, 100 * 0.8 * 1.2 = 96
 
-def test_specialty_above_one_increases_price(banana, pori, make_game):
-    game = make_game(fruits=[banana], cities=[pori])
+def test_specialty_above_one_increases_price(banana, helsinki, make_game):
+    game = make_game(fruits=[banana], cities=[helsinki])
     pricing = PricingSystem(game)
-    price = pricing.get_price("Banana", "Pori")
+    price = pricing.get_price("Banana", "Helsinki")
     logger.info(f"Price calculated: {price}")
-    assert 88 <= price <= 132
+    assert 96 <= price <= 144  # 100 * 1.2 * 0.8 .. 100 * 1.2 * 1.2
 
-def test_specialty_above_one_increases_price(banana, pori, make_game):
+def test_neutral_specialty_keeps_base_range(banana, pori, make_game):
+    pori.specialties["Banana"] = 1.0
     game = make_game(fruits=[banana], cities=[pori])
     pricing = PricingSystem(game)
     price = pricing.get_price("Banana", "Pori")
     logger.info(f"Price calculated: {price}")
-    assert 80 <= price <= 120  # 100 * 1.0 * 0.8 = 80, 100 * 1.0 * 1.2 = 120
+    assert 80 <= price <= 120  # 100 * 1.0 * 0.8..1.2
 
 def test_get_price_return_zero_for_unknown_fruit(apple, pori, make_game):
     game = make_game(fruits=[apple], cities=[pori])

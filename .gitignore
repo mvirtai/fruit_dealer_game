@@ -14,3 +14,6 @@ wheels/
 
 # Coverage reports
 .coverage
+
+PR_STORY.md
+game.json

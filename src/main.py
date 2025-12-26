@@ -38,7 +38,13 @@ GAME_FILE = Path(__file__).resolve().parent / "game.json"
 # --- UI Helpers ---
 
 def _render_error(msg: str, hint: str | None = None) -> None:
-    """Display error in red Panel with optional hint."""
+    """
+    Display error message in a red-bordered Panel with optional hint.
+
+    Args:
+        msg: Main error message to display.
+        hint: Optional hint text shown below the main message in dim style.
+    """
     content = Text(msg, style="yellow")
     if hint:
         content.append(f"\n{hint}", style="dim")
@@ -52,7 +58,12 @@ def _render_error(msg: str, hint: str | None = None) -> None:
 
 
 def _render_success(msg: str) -> None:
-    """Display success message in green Panel."""
+    """
+    Display success message in a green-bordered Panel.
+
+    Args:
+        msg: Success message to display.
+    """
     console.print()
     console.print(Panel(
         Text(msg, style="bold green"),
@@ -135,8 +146,6 @@ def start_new_game(player_name: str | None = None) -> GameEngine:
 
     game = _setup_data(player_name)
     _render_success(f"New game started for {player_name}!")
-    print()
-    input("Press Enter to continue...")
 
     return GameEngine(game)
 
@@ -145,7 +154,8 @@ def _render_main_menu() -> None:
     """
     Render the primary CLI menu with Rich formatting.
 
-    Displays title/subtitle and three options: start, load, exit.
+    Displays centered title/subtitle and a menu panel with three options:
+    start new game, load existing game, and exit.
     """
     console.print()
     console.print()
@@ -176,12 +186,16 @@ def _render_main_menu() -> None:
 
 def _render_game_view(engine: GameEngine, console: Console) -> None:
     """
-    Render a simple game overview with player, city, day, and market prices.
+    Render game overview with player stats and market prices in horizontal layout.
 
-    Shows:
-        - Player name, current city, and day
-        - Player money (cents) and inventory summary
-        - Current city's market prices (Market as single source of truth)
+    Displays:
+        - Player stats panel (left): money, inventory, location, and day
+        - Market prices panel (right): current city's fruit prices
+    Uses space-around layout with padding on sides and larger gap between panels.
+
+    Args:
+        engine: GameEngine containing current game state.
+        console: Rich Console for output rendering.
     """
     player = engine.player
     game = engine.game
@@ -319,7 +333,17 @@ def store_game(game: GameEngine) -> None:
 
 
 def load_game() -> GameEngine:
-    """Load a saved game from disk and return a ready GameEngine."""
+    """
+    Load a saved game from disk and return a ready GameEngine.
+
+    Returns:
+        GameEngine initialized with loaded game state.
+
+    Raises:
+        FileNotFoundError: If save file does not exist.
+        json.JSONDecodeError: If save file contains invalid JSON.
+        KeyError: If save file is missing required keys (incompatible format).
+    """
     with open(GAME_FILE, "r") as f:
         game_data = json.load(f)
     game = _deserialize_game(game_data)
@@ -330,11 +354,17 @@ def cli():
     """
     Entry-point CLI that shows the main menu and routes the chosen action.
 
-    Flow:
+    Main loop flow:
         1) Render Rich main menu
-        2) Prompt for command (1-3)
-        3) Start new game, load existing, or exit
+        2) Validate menu command input (1-3 only, retry on invalid)
+        3) Execute command: start new game, load existing, or exit
         4) After start/load, render the game overview
+        5) Return to menu after each action (except exit)
+
+    Menu commands:
+        - 1: Start new game (validates player name, saves to disk)
+        - 2: Load game (handles FileNotFoundError, JSONDecodeError, KeyError)
+        - 3: Exit application
     """
     logger.info("Starting Fruit Dealer Game")
 

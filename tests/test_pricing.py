@@ -25,7 +25,7 @@ def cherry() -> Fruit:
 
 @pytest.fixture
 def helsinki() -> City:
-    return City(name="Helsinki", position=(0, 0), specialties={"Apple": 1.2})
+    return City(name="Helsinki", position=(0, 0), specialties={"Apple": 1.2, "Banana": 1.2})
 
 
 def test_specialty_below_one_reduces_price(apple, pori, make_game):

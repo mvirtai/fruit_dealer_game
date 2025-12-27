@@ -30,8 +30,8 @@ from models import Game, Player, City, Market, Fruit
 from game_engine import GameEngine
 
 
+# --- constants ---
 console = Console()
-
 GAME_FILE = Path(__file__).resolve().parent / "game.json"
 
 
@@ -148,6 +148,76 @@ def start_new_game(player_name: str | None = None) -> GameEngine:
     _render_success(f"New game started for {player_name}!")
 
     return GameEngine(game)
+
+
+
+# --- main game loop for CLI interface ---
+def _game_loop(engine: GameEngine) -> None:
+    """Game loop for orchestration of CLI interface.
+    WORK PHASES: 
+        1. _render_game_view
+        2. show available cmds
+        3. wait user input
+        4. parse cmd and calls GameEngine-methods
+        5. render error msgs
+        6. update game view after each input
+        7. returns to main menu when user want's
+    """
+    if engine:
+        _render_game_view(engine, console)
+
+        console.print(f"Nice to meet you, {engine.player.name}! Type 'help' if you want to see all available commands :)")
+        while True:
+            cmd = Prompt.ask("Command: ")
+
+
+
+    return None
+
+
+
+def _parse_command(cmd: str) -> tuple[str, list[str]] | None:
+    """
+    Parse user command into (command, args) tuple.
+    
+    Examples:
+        "help" -> ("help", [])
+        "buy apple 5" -> ("buy", ["apple", "5"])
+        "travel Tampere" -> ("travel", ["Tampere"])
+    
+    Returns:
+        (command, args) tuple or None if command is invalid
+    """
+    if not cmd:
+        return None
+    
+    # Split command into parts
+    parts = cmd.strip().split()
+    if not parts:
+        return None
+    
+    # First part is the command, rest are arguments
+    command = parts[0].lower()
+    args = parts[1:] if len(parts) > 1 else []
+    
+    # Validate command exists
+    available_commands = {"help", "buy", "sell", "travel", "status", "save", "quit", "exit"}
+    
+    if command not in available_commands:
+        _render_error(
+            "Invalid command",
+            hint="Try typing 'help' to see available commands."
+        )
+        return None
+    
+    return (command, args)
+            
+
+
+   
+
+
+
 
 
 def _render_main_menu() -> None:

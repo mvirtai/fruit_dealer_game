@@ -74,6 +74,7 @@ def test_cli_starts_new_game_branch(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr("main.start_new_game", lambda: GameEngine(_setup_data("Eve")))
     # Stub render_game_view to avoid heavy Rich output
     monkeypatch.setattr("main._render_game_view", lambda *args, **kwargs: None)
+    monkeypatch.setattr("main._game_loop", lambda engine: None)
     call_count = {"count": 0}
 
     def mock_prompt(prompt):

@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pytest-quick
+        name: Quick pytest check
+        entry: uv run pytest --timeout=10 -x
+        language: system
+        types: [python]
+        pass_filenames: false

@@ -153,27 +153,102 @@ def start_new_game(player_name: str | None = None) -> GameEngine:
 
 # --- main game loop for CLI interface ---
 def _game_loop(engine: GameEngine) -> None:
-    """Game loop for orchestration of CLI interface.
-    WORK PHASES: 
-        1. _render_game_view
-        2. show available cmds
-        3. wait user input
-        4. parse cmd and calls GameEngine-methods
-        5. render error msgs
-        6. update game view after each input
-        7. returns to main menu when user want's
     """
-    if engine:
+    Main game loop. Renders view, accepts commands, updates state.
+    
+    Returns when player enters 'quit' or 'exit'.
+    """
+    while True:
+        # 1. Näytä pelinäkymä
         _render_game_view(engine, console)
 
-        console.print(f"Nice to meet you, {engine.player.name}! Type 'help' if you want to see all available commands :)")
-        while True:
-            cmd = Prompt.ask("Command: ")
+        # 2. Pyydä komento
+        raw_cmd = Prompt.ask("[bold blue]Command[/bold blue]")
+
+        # 3. Parsii komento (syntaksi)
+        parsed = _parse_command(raw_cmd)
+        if parsed is None:
+            continue # Virheellinen komento, yritä uudelleen
+
+        command, args = parsed
+
+        # 4. Suorita komento (validointi _execute_commandissa)
+        should_continue = _execute_command(engine, command, args)
+
+        # 5. Lopeta jos quit
+        if not should_continue:
+            return
 
 
+def _execute_command(engine: GameEngine, command: str, args: list[str]) -> bool:
+        """
+        Execute a parsed command.
+        
+        Returns:
+            True to continue game loop, 
+            False to exit to main menu.
+        """
+        if command == "help":
+            # _render_help_menu()
+            return True
 
-    return None
-
+        if command == "status":
+            # Game view is rendered at the start of the game
+            return True
+        
+        if command == "save":
+            store_game(engine)
+            _render_success("Game saved!")
+            return True
+        
+        if command in ("quit", "exit"):
+            return False # Stop game loop
+        
+        # Commands with args - validate first
+        if command == "buy":
+            if len(args) != 2:
+                _render_error("Usage: buy <fruit> <quantity>", hint="Example: buy apple 5")
+                return True
+            
+            fruit, qty_str = args
+            if not qty_str.isdigit():
+                _render_error("Quantity must be a number", hint="Example: buy apple 5")
+            
+            try:
+                engine.buy(fruit.capitalize(), int(qty_str))
+                _render_success(f"Bought {qty_str} {fruit if int(qty_str) == 1 else fruit + "s"}!")
+            except ValueError as e:
+                _render_error(str(e))
+            return True
+        
+        if command == "sell":
+            if len(args) != 2:
+                 _render_error("Usage: sell <fruit> <quantity>", hint="Example: sell banana 3")
+            
+            fruit, qty_str = args
+            if not qty_str.isdigit():
+                _render_error("Quantity must be a number", hint="Example: sell banana 3")
+            
+            try:
+                engine.sell(fruit.capitalize(), int(qty_str))
+                _render_success(f"Sold {qty_str} {fruit if int(qty_str) == 1 else fruit + "s"}!")
+            except ValueError as e:
+                _render_error(str(e))
+            return True
+            
+        if command == "travel":
+                if len(args) != 1:
+                    _render_error("Usage: travel <city>", hint="Example: travel Tampere")
+                    return True
+                
+                try:
+                    engine.travel(args[0].capitalize())
+                    _render_success(f"Traveled to {args[0]}!")
+                except ValueError as e:
+                    _render_error(str(e))
+                return True
+        
+        return True # Unknown command - still continue
 
 
 def _parse_command(cmd: str) -> tuple[str, list[str]] | None:
@@ -212,13 +287,6 @@ def _parse_command(cmd: str) -> tuple[str, list[str]] | None:
     
     return (command, args)
             
-
-
-   
-
-
-
-
 
 def _render_main_menu() -> None:
     """
@@ -455,7 +523,7 @@ def cli():
         if cmd == 1:
             game = start_new_game()
             store_game(game)
-            _render_game_view(game, console)
+            _game_loop(game)
 
         elif cmd == 2:
             try:

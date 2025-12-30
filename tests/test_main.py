@@ -3,25 +3,18 @@ from io import StringIO
 from pathlib import Path
 import pytest
 
-from main import (
-    _deserialize_game,
-    _render_game_view,
-    _render_main_menu,
-    _serialize_game,
-    _setup_data,
-    cli,
-    load_game,
-    start_new_game,
-    store_game,
-    GAME_FILE,
-)
+from cli import cli
+from commands import game_loop
+from game_setup import setup_data, start_new_game
+from persistence import serialize_game, deserialize_game, store_game, load_game, GAME_FILE
+from ui import render_main_menu, render_game_view, console
 from game_engine import GameEngine
 from models import Game, Player, City, Market, Fruit
 from rich.console import Console
 
 
 def test_setup_data_builds_game():
-    game = _setup_data("Alice")
+    game = setup_data("Alice")
     assert isinstance(game, Game)
     assert game.player.name == "Alice"
     assert len(game.fruits) > 0
@@ -31,7 +24,7 @@ def test_setup_data_builds_game():
 
 def test_start_new_game_uses_prompt_and_returns_engine(monkeypatch):
     """Test that start_new_game prompts for name and returns GameEngine."""
-    monkeypatch.setattr("main.Prompt.ask", lambda _: "Bob")
+    monkeypatch.setattr("game_setup.Prompt.ask", lambda _: "Bob")
     monkeypatch.setattr("builtins.input", lambda _: "")  # Mock input("Press Enter...")
     engine = start_new_game()
     assert isinstance(engine, GameEngine)
@@ -40,7 +33,7 @@ def test_start_new_game_uses_prompt_and_returns_engine(monkeypatch):
 
 def test_store_and_load_roundtrip(tmp_path, monkeypatch):
     """Test that store and load preserve game state correctly."""
-    monkeypatch.setattr("main.GAME_FILE", tmp_path / "game.json")
+    monkeypatch.setattr("persistence.GAME_FILE", tmp_path / "game.json")
     engine = start_new_game(player_name="Carol")
 
     store_game(engine)
@@ -54,11 +47,11 @@ def test_store_and_load_roundtrip(tmp_path, monkeypatch):
 
 def test_serialize_and_deserialize_are_inverse(tmp_path, monkeypatch):
     """Test that serialize/deserialize roundtrip preserves all game data."""
-    monkeypatch.setattr("main.GAME_FILE", tmp_path / "game.json")
+    monkeypatch.setattr("persistence.GAME_FILE", tmp_path / "game.json")
     engine = start_new_game(player_name="Dave")
 
-    data = _serialize_game(engine)
-    rebuilt = _deserialize_game(data)
+    data = serialize_game(engine)
+    rebuilt = deserialize_game(data)
 
     assert isinstance(data, dict)
     assert isinstance(rebuilt, Game)
@@ -69,12 +62,12 @@ def test_serialize_and_deserialize_are_inverse(tmp_path, monkeypatch):
 
 def test_cli_starts_new_game_branch(monkeypatch, capsys, tmp_path):
     """Test that CLI command 1 starts a new game."""
-    monkeypatch.setattr("main.GAME_FILE", tmp_path / "game.json")
+    monkeypatch.setattr("persistence.GAME_FILE", tmp_path / "game.json")
+    monkeypatch.setattr("cli.GAME_FILE", tmp_path / "game.json")
     # Stub start_new_game to avoid internal Prompt.ask for player name
-    monkeypatch.setattr("main.start_new_game", lambda: GameEngine(_setup_data("Eve")))
-    # Stub render_game_view to avoid heavy Rich output
-    monkeypatch.setattr("main._render_game_view", lambda *args, **kwargs: None)
-    monkeypatch.setattr("main._game_loop", lambda engine: None)
+    monkeypatch.setattr("cli.start_new_game", lambda: GameEngine(setup_data("Eve")))
+    # Stub game_loop to avoid heavy Rich output
+    monkeypatch.setattr("cli.game_loop", lambda engine: None)
     call_count = {"count": 0}
 
     def mock_prompt(prompt):
@@ -84,7 +77,7 @@ def test_cli_starts_new_game_branch(monkeypatch, capsys, tmp_path):
         else:
             return "3"  # Exit after first command
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
 
     cli()
     captured = capsys.readouterr()
@@ -103,11 +96,11 @@ def test_cli_handles_invalid_command(monkeypatch, capsys):
         else:
             return "3"  # Valid (exit)
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
     # Stub to avoid unintended prompts
-    monkeypatch.setattr("main.start_new_game", lambda: GameEngine(_setup_data("Test")))
-    monkeypatch.setattr("main.load_game", lambda: GameEngine(_setup_data("Test")))
-    monkeypatch.setattr("main._render_game_view", lambda *args, **kwargs: None)
+    monkeypatch.setattr("cli.start_new_game", lambda: GameEngine(setup_data("Test")))
+    monkeypatch.setattr("cli.load_game", lambda: GameEngine(setup_data("Test")))
+    monkeypatch.setattr("cli.game_loop", lambda engine: None)
 
     cli()
     captured = capsys.readouterr()
@@ -120,8 +113,8 @@ def test_cli_handles_invalid_command(monkeypatch, capsys):
 def test_cli_load_branch(tmp_path, monkeypatch, capsys):
     """Test that CLI command 2 loads a game."""
     # Stub load_game to avoid file I/O and internal prompts
-    monkeypatch.setattr("main.load_game", lambda: GameEngine(_setup_data("Loaded")))
-    monkeypatch.setattr("main._render_game_view", lambda *args, **kwargs: None)
+    monkeypatch.setattr("cli.load_game", lambda: GameEngine(setup_data("Loaded")))
+    monkeypatch.setattr("cli.game_loop", lambda engine: None)
 
     call_count = {"count": 0}
 
@@ -132,7 +125,7 @@ def test_cli_load_branch(tmp_path, monkeypatch, capsys):
         else:
             return "3"  # Exit after load
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
 
     cli()
     captured = capsys.readouterr()
@@ -147,7 +140,7 @@ def test_cli_exit_branch(monkeypatch, capsys):
         call_count["count"] += 1
         return "3"  # Exit
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
     
     # cli() uses break, not exit(), so it returns normally
     cli()
@@ -157,7 +150,7 @@ def test_cli_exit_branch(monkeypatch, capsys):
 
 def test_render_main_menu_outputs_menu(monkeypatch, capsys):
     """Test that main menu renders correctly."""
-    _render_main_menu()
+    render_main_menu()
     captured = capsys.readouterr()
     output = captured.out
     assert "Main Menu" in output
@@ -165,17 +158,24 @@ def test_render_main_menu_outputs_menu(monkeypatch, capsys):
     assert "Load a game" in output
 
 
-def test_render_game_view_shows_player_and_prices():
+def test_render_game_view_shows_player_and_prices(capsys):
     buffer = StringIO()
-    console = Console(file=buffer, width=80, force_terminal=True, color_system=None)
+    test_console = Console(file=buffer, width=80, force_terminal=True, color_system=None)
     engine = start_new_game(player_name="Viewer")
 
-    _render_game_view(engine, console)
-
-    output = buffer.getvalue()
-    assert "Viewer" in output
-    assert "Day" in output
-    assert "Market Prices" in output
+    # Use monkeypatch to temporarily replace the console
+    import ui.rendering as rendering_module
+    original_console = rendering_module.console
+    rendering_module.console = test_console
+    
+    try:
+        render_game_view(engine)
+        output = buffer.getvalue()
+        assert "Viewer" in output
+        assert "Day" in output
+        assert "Market Prices" in output
+    finally:
+        rendering_module.console = original_console
 
 
 # --- Validation Tests ---
@@ -193,7 +193,7 @@ def test_start_new_game_validates_player_name_length(monkeypatch, capsys):
         else:
             return "Alice"  # Valid
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("game_setup.Prompt.ask", mock_prompt)
     monkeypatch.setattr("builtins.input", lambda _: "")  # Mock input("Press Enter...")
 
     engine = start_new_game()
@@ -214,7 +214,7 @@ def test_start_new_game_validates_player_name_characters(monkeypatch):
         else:
             return "Alice-Bob"  # Valid (hyphen allowed)
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("game_setup.Prompt.ask", mock_prompt)
     monkeypatch.setattr("builtins.input", lambda _: "")
 
     engine = start_new_game()
@@ -224,7 +224,7 @@ def test_start_new_game_validates_player_name_characters(monkeypatch):
 
 def test_start_new_game_strips_whitespace(monkeypatch):
     """Test that whitespace is stripped from player names."""
-    monkeypatch.setattr("main.Prompt.ask", lambda _: "  Alice  ")
+    monkeypatch.setattr("game_setup.Prompt.ask", lambda _: "  Alice  ")
     monkeypatch.setattr("builtins.input", lambda _: "")
 
     engine = start_new_game()
@@ -237,7 +237,7 @@ def test_start_new_game_accepts_valid_names(monkeypatch):
 
     for name in test_names:
         # Use default parameter to avoid closure issue
-        monkeypatch.setattr("main.Prompt.ask", lambda _, n=name: n)
+        monkeypatch.setattr("game_setup.Prompt.ask", lambda _, n=name: n)
         monkeypatch.setattr("builtins.input", lambda _: "")
         engine = start_new_game()
         assert engine.player.name == name
@@ -259,10 +259,10 @@ def test_cli_validates_menu_command_integer(monkeypatch, capsys):
         else:
             return "3"  # Valid (exit)
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
-    monkeypatch.setattr("main.start_new_game", lambda: GameEngine(_setup_data("Test")))
-    monkeypatch.setattr("main.load_game", lambda: GameEngine(_setup_data("Test")))
-    monkeypatch.setattr("main._render_game_view", lambda *args, **kwargs: None)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.start_new_game", lambda: GameEngine(setup_data("Test")))
+    monkeypatch.setattr("cli.load_game", lambda: GameEngine(setup_data("Test")))
+    monkeypatch.setattr("cli.game_loop", lambda engine: None)
 
     cli()
     captured = capsys.readouterr()
@@ -286,10 +286,10 @@ def test_cli_validates_menu_command_range(monkeypatch, capsys):
         else:
             return "3"  # Valid (exit)
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
-    monkeypatch.setattr("main.start_new_game", lambda: GameEngine(_setup_data("Test")))
-    monkeypatch.setattr("main.load_game", lambda: GameEngine(_setup_data("Test")))
-    monkeypatch.setattr("main._render_game_view", lambda *args, **kwargs: None)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.start_new_game", lambda: GameEngine(setup_data("Test")))
+    monkeypatch.setattr("cli.load_game", lambda: GameEngine(setup_data("Test")))
+    monkeypatch.setattr("cli.game_loop", lambda engine: None)
 
     cli()
     captured = capsys.readouterr()
@@ -303,7 +303,8 @@ def test_cli_validates_menu_command_range(monkeypatch, capsys):
 
 def test_load_game_file_not_found_error(tmp_path, monkeypatch, capsys):
     """Test that FileNotFoundError is handled gracefully when loading."""
-    monkeypatch.setattr("main.GAME_FILE", tmp_path / "nonexistent.json")
+    monkeypatch.setattr("persistence.GAME_FILE", tmp_path / "nonexistent.json")
+    monkeypatch.setattr("cli.GAME_FILE", tmp_path / "nonexistent.json")
 
     # Simulate menu command 2 (load)
     call_count = {"count": 0}
@@ -315,7 +316,7 @@ def test_load_game_file_not_found_error(tmp_path, monkeypatch, capsys):
         else:
             return "3"  # Exit after error
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
     exit_called = {"called": False}
     monkeypatch.setattr("builtins.exit", lambda: exit_called.update({"called": True}))
 
@@ -328,7 +329,8 @@ def test_load_game_json_decode_error(tmp_path, monkeypatch, capsys):
     """Test that JSONDecodeError is handled when file is corrupted."""
     game_file = tmp_path / "game.json"
     game_file.write_text("{invalid json}", encoding="utf-8")
-    monkeypatch.setattr("main.GAME_FILE", game_file)
+    monkeypatch.setattr("persistence.GAME_FILE", game_file)
+    monkeypatch.setattr("cli.GAME_FILE", game_file)
 
     call_count = {"count": 0}
 
@@ -339,7 +341,7 @@ def test_load_game_json_decode_error(tmp_path, monkeypatch, capsys):
         else:
             return "3"
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
     exit_called = {"called": False}
     monkeypatch.setattr("builtins.exit", lambda: exit_called.update({"called": True}))
 
@@ -353,7 +355,8 @@ def test_load_game_key_error_incompatible_save(tmp_path, monkeypatch, capsys):
     game_file = tmp_path / "game.json"
     # Write incomplete JSON (missing required keys)
     game_file.write_text('{"player": {"name": "Test"}}', encoding="utf-8")
-    monkeypatch.setattr("main.GAME_FILE", game_file)
+    monkeypatch.setattr("persistence.GAME_FILE", game_file)
+    monkeypatch.setattr("cli.GAME_FILE", game_file)
 
     call_count = {"count": 0}
 
@@ -364,7 +367,7 @@ def test_load_game_key_error_incompatible_save(tmp_path, monkeypatch, capsys):
         else:
             return "3"
 
-    monkeypatch.setattr("main.Prompt.ask", mock_prompt)
+    monkeypatch.setattr("cli.Prompt.ask", mock_prompt)
     exit_called = {"called": False}
     monkeypatch.setattr("builtins.exit", lambda: exit_called.update({"called": True}))
 
@@ -386,7 +389,7 @@ def test_start_new_game_shows_success_message(monkeypatch, capsys):
 
 def test_load_game_shows_success_message(tmp_path, monkeypatch, capsys):
     """Test that success message is shown when game loads."""
-    monkeypatch.setattr("main.GAME_FILE", tmp_path / "game.json")
+    monkeypatch.setattr("persistence.GAME_FILE", tmp_path / "game.json")
     engine = start_new_game(player_name="LoadTest")
     store_game(engine)
 
@@ -394,4 +397,3 @@ def test_load_game_shows_success_message(tmp_path, monkeypatch, capsys):
     loaded_engine = load_game()
     # Just verify it loads without error
     assert loaded_engine.player.name == "LoadTest"
-    

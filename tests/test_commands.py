@@ -2,6 +2,8 @@
 Tests for commands module.
 
 Tests command parsing, execution, and game loop functionality.
+
+25 tests.
 """
 
 import pytest

@@ -60,12 +60,12 @@ def test_parse_command_valid_commands(monkeypatch):
     assert parse_command("travel  Helsinki") == ("travel", ["Helsinki"])  # Extra space
     
     # Commands with multiple args
-    assert parse_command("buy apple 5") == ("buy", ["apple", "5"])
-    assert parse_command("sell banana 10") == ("sell", ["banana", "10"])
+    assert parse_command("buy 5 apple") == ("buy", ["5", "apple"])
+    assert parse_command("sell 10 banana") == ("sell", ["10", "banana"])
     
     # Case insensitivity
     assert parse_command("HELP") == ("help", [])
-    assert parse_command("Buy Apple 5") == ("buy", ["Apple", "5"])
+    assert parse_command("Buy 5 Apple") == ("buy", ["5", "Apple"])
     
     # No error calls for valid commands
     assert len(calls) == 0
@@ -98,7 +98,7 @@ def test_parse_command_whitespace_handling(monkeypatch):
     monkeypatch.setattr("commands.render_error", lambda *args, **kwargs: None)
     
     assert parse_command("  help  ") == ("help", [])
-    assert parse_command("buy  apple  5") == ("buy", ["apple", "5"])
+    assert parse_command("buy  5  apple") == ("buy", ["5", "apple"])
 
 
 # --- Test execute_command ---
@@ -172,7 +172,7 @@ def test_execute_command_buy_success(mock_ui, monkeypatch, make_game, apple, por
     original_get_price = engine.pricing.get_price
     engine.pricing.get_price = lambda fruit, city: 100
     
-    result = execute_command(engine, "buy", ["apple", "5"])
+    result = execute_command(engine, "buy", ["5", "apple"])
     assert result is True
     assert len(mock_ui["success"]) == 1
     assert "Bought" in mock_ui["success"][0][0]
@@ -192,7 +192,7 @@ def test_execute_command_buy_invalid_args(mock_ui, make_game, apple, pori):
     mock_ui["error"].clear()
     
     # Invalid quantity
-    result = execute_command(engine, "buy", ["apple", "abc"])
+    result = execute_command(engine, "buy", ["abc", "apple"])
     assert result is True
     assert len(mock_ui["error"]) >= 1
     assert "number" in mock_ui["error"][0][0].lower()
@@ -204,7 +204,7 @@ def test_execute_command_buy_game_error(mock_ui, monkeypatch, make_game, apple, 
     engine = GameEngine(game)
     
     # Price is higher than available money
-    result = execute_command(engine, "buy", ["apple", "1"])
+    result = execute_command(engine, "buy", ["1", "apple"])
     assert result is True
     # Should have error from game engine
     assert len(mock_ui["error"]) >= 1
@@ -223,7 +223,7 @@ def test_execute_command_sell_success(mock_ui, make_game, apple, pori):
     initial_money = engine.player.money
     initial_inventory = engine.player.inventory["Apple"]
     
-    result = execute_command(engine, "sell", ["apple", "2"])
+    result = execute_command(engine, "sell", ["2", "apple"])
     assert result is True
     assert len(mock_ui["success"]) == 1
     assert "Sold" in mock_ui["success"][0][0]
@@ -245,7 +245,7 @@ def test_execute_command_sell_invalid_args(mock_ui, make_game, apple, pori):
     mock_ui["error"].clear()
     
     # Invalid quantity
-    result = execute_command(engine, "sell", ["apple", "xyz"])
+    result = execute_command(engine, "sell", ["xyz", "apple"])
     assert result is True
     assert len(mock_ui["error"]) >= 1
     assert "number" in mock_ui["error"][0][0].lower()
@@ -257,7 +257,7 @@ def test_execute_command_sell_game_error(mock_ui, make_game, apple, pori):
     engine = GameEngine(game)
     
     # Try to sell more than available
-    result = execute_command(engine, "sell", ["apple", "10"])
+    result = execute_command(engine, "sell", ["10", "apple"])
     assert result is True
     assert len(mock_ui["error"]) >= 1
 
@@ -336,27 +336,27 @@ def test_execute_command_pluralization(mock_ui, make_game, apple, pori):
     
     # Buy singular
     engine.pricing.get_price = lambda fruit, city: 100
-    result = execute_command(engine, "buy", ["apple", "1"])
+    result = execute_command(engine, "buy", ["1", "apple"])
     assert "apple" in mock_ui["success"][0][0].lower()
     assert "apples" not in mock_ui["success"][0][0].lower()
     
     mock_ui["success"].clear()
     
     # Buy plural
-    result = execute_command(engine, "buy", ["apple", "2"])
+    result = execute_command(engine, "buy", ["2", "apple"])
     assert "apples" in mock_ui["success"][0][0].lower()
     
     mock_ui["success"].clear()
     
     # Sell singular
-    result = execute_command(engine, "sell", ["apple", "1"])
+    result = execute_command(engine, "sell", ["1", "apple"])
     assert "apple" in mock_ui["success"][0][0].lower()
     assert "apples" not in mock_ui["success"][0][0].lower()
     
     mock_ui["success"].clear()
     
     # Sell plural
-    result = execute_command(engine, "sell", ["apple", "2"])
+    result = execute_command(engine, "sell", ["2", "apple"])
     assert "apples" in mock_ui["success"][0][0].lower()
 
 

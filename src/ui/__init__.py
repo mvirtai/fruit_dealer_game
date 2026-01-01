@@ -6,6 +6,7 @@ from ui.rendering import (
     render_success,
     render_main_menu,
     render_game_view,
+    render_help_menu
 )
 
 __all__ = [
@@ -14,5 +15,6 @@ __all__ = [
     "render_success",
     "render_main_menu",
     "render_game_view",
+    "render_help_menu"
 ]
 

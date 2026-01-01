@@ -8,7 +8,7 @@ from rich.prompt import Prompt
 
 from game_engine import GameEngine
 from persistence import store_game
-from ui import console, render_error, render_success, render_game_view
+from ui import console, render_error, render_success, render_game_view, render_help_menu
 
 
 # Available commands
@@ -26,7 +26,7 @@ def parse_command(cmd: str) -> tuple[str, list[str]] | None:
 
     Examples:
         "help" -> ("help", [])
-        "buy apple 5" -> ("buy", ["apple", "5"])
+        "buy 5 apple" -> ("buy", ["5", "apple"])
         "travel Tampere" -> ("travel", ["Tampere"])
 
     Args:
@@ -68,7 +68,7 @@ def execute_command(engine: GameEngine, command: str, args: list[str]) -> bool:
         True to continue game loop, False to exit to main menu.
     """
     if command == "help":
-        # TODO: render_help_menu()
+        render_help_menu()
         return True
 
     if command == "status":
@@ -86,12 +86,12 @@ def execute_command(engine: GameEngine, command: str, args: list[str]) -> bool:
     # Commands with args
     if command == "buy":
         if len(args) != 2:
-            render_error("Usage: buy <fruit> <quantity>", hint="Example: buy apple 5")
+            render_error("Usage: buy <quantity> <fruit>", hint="Example: buy 5 apple")
             return True
 
-        fruit, qty_str = args
+        qty_str, fruit = args
         if not qty_str.isdigit():
-            render_error("Quantity must be a number", hint="Example: buy apple 5")
+            render_error("Quantity must be a number", hint="Example: buy 5 apple")
             return True
 
         try:
@@ -104,12 +104,12 @@ def execute_command(engine: GameEngine, command: str, args: list[str]) -> bool:
 
     if command == "sell":
         if len(args) != 2:
-            render_error("Usage: sell <fruit> <quantity>", hint="Example: sell banana 3")
+            render_error("Usage: sell <quantity> <fruit>", hint="Example: sell 3 banana")
             return True
 
-        fruit, qty_str = args
+        qty_str, fruit = args
         if not qty_str.isdigit():
-            render_error("Quantity must be a number", hint="Example: sell banana 3")
+            render_error("Quantity must be a number", hint="Example: sell 3 banana")
             return True
 
         try:

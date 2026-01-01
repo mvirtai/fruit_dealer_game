@@ -87,6 +87,46 @@ def render_main_menu() -> None:
     console.print()
 
 
+def render_help_menu():
+    """
+    Render the help menu with available commands and descriptions.
+
+    Displays a panel listing all user commands with a short explanation for each.
+    """
+    commands = [
+        ("help", "Show this help menu"),
+        ("buy <qty> <fruit>", "Buy a quantity of a fruit"),
+        ("sell <qty> <fruit>", "Sell a quantity of a fruit"),
+        ("travel <city>", "Travel to another city"),
+        ("status", "Show your current status"),
+        ("save", "Save the current game"),
+        ("quit / exit", "Exit to main menu"),
+    ]
+
+    content = Text("Available Commands", style="bold")
+    content.append("\n\n")  
+    
+    content.append("Command", style="bold cyan")
+    content.append("   ") 
+    content.append("Description", style="bold green")
+    content.append("\n\n")  
+
+    for cmd, desc in commands:
+        content.append(cmd, style="yellow")  
+        content.append("   ")  
+        content.append(desc, style="white") 
+        content.append("\n")  
+    
+    help_panel = Panel(
+        content,
+        border_style="green",
+        title="[bold magenta]Help[/bold magenta]",
+        padding=(1, 4),
+    )
+    console.print()
+    console.print(help_panel)
+    console.print()
+
 def render_game_view(engine: GameEngine) -> None:
     """
     Render game overview with player stats and market prices in horizontal layout.

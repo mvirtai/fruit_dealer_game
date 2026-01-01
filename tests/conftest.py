@@ -5,7 +5,7 @@ import pytest
 
 from game_engine import GameEngine  
 from models import Fruit, City, Market, Game, Money, Coordinates, Emoji, Player
-from main import GAME_FILE
+from persistence import GAME_FILE
 
 @pytest.fixture
 def make_fruit() -> Callable[[str, Money, str], Fruit]:
